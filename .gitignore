@@ -6,3 +6,5 @@ build.sbt
 lib_managed/
 project/
 target/
+.worksheet/
+ssl-patch
