@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TweetSetSuite extends FunSuite {
   trait TestSets {
-    val set1 = new Empty
+    val set1 = Empty
     val set2 = set1.incl(new Tweet("a", "a body", 20))
     val set3 = set2.incl(new Tweet("b", "b body", 20))
     val c = new Tweet("c", "c body", 7)
@@ -26,6 +26,19 @@ class TweetSetSuite extends FunSuite {
 
   def size(set: TweetSet): Int = asSet(set).size
 
+  test("Print test data") {
+    new TestSets {
+      println(s"set1:\t$set1")
+      println(s"set2:\t$set2")
+      println(s"set3:\t$set3")
+      println(s"set4c:\t$set4c")
+      println(s"set4d:\t$set4d")
+      println(s"set5:\t$set5")
+      println(s"tweet c:\t$c")
+      println(s"tweet d:\t$d")
+    }
+  }
+  
   test("filter: on empty set") {
     new TestSets {
       assert(size(set1.filter(tw => tw.user == "a")) === 0)
@@ -69,4 +82,5 @@ class TweetSetSuite extends FunSuite {
       assert(trends.head.user == "a" || trends.head.user == "b")
     }
   }
+
 }

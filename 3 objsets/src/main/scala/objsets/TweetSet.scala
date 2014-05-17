@@ -42,7 +42,7 @@ abstract class TweetSet {
    * Question: Can we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def filter(p: Tweet => Boolean): TweetSet = ???
+  def filter(p: Tweet => Boolean): TweetSet = filterAcc(p, Empty)
 
   /**
    * This is a helper method for `filter` that propagetes the accumulated tweets.
@@ -108,9 +108,12 @@ abstract class TweetSet {
   def foreach(f: Tweet => Unit): Unit
 }
 
-class Empty extends TweetSet {
+object Empty extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    println(s"filtering Empty: '', ${acc}, false")
+    acc
+  }
 
 
   /**
@@ -119,16 +122,25 @@ class Empty extends TweetSet {
 
   def contains(tweet: Tweet): Boolean = false
 
-  def incl(tweet: Tweet): TweetSet = new NonEmpty(tweet, new Empty, new Empty)
+  def incl(tweet: Tweet): TweetSet = new NonEmpty(tweet, Empty, Empty)
 
   def remove(tweet: Tweet): TweetSet = this
 
   def foreach(f: Tweet => Unit): Unit = ()
+      
+  override def toString() = "."
 }
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    println(s"filtering NonEmpty: ${elem.text}, ${acc}, ${p(elem)}")
+    if (p(elem)) {
+      right.filterAcc(p, left.filterAcc(p, acc.incl(elem)))
+    } else {
+      right.filterAcc(p, left.filterAcc(p, acc))
+    }
+  }
 
 
   /**
@@ -156,6 +168,8 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     left.foreach(f)
     right.foreach(f)
   }
+      
+  override def toString() = s"{ ${left}  ${elem.text} ${right} }"
 }
 
 trait TweetList {
