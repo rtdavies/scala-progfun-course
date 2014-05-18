@@ -8,14 +8,16 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TweetSetSuite extends FunSuite {
   trait TestSets {
-    val set1 = Empty
-    val set2 = set1.incl(new Tweet("a", "a body", 20))
-    val set3 = set2.incl(new Tweet("b", "b body", 20))
-    val c = new Tweet("c", "c body", 7)
-    val d = new Tweet("d", "d body", 9)
-    val set4c = set3.incl(c)
-    val set4d = set3.incl(d)
-    val set5 = set4c.incl(d)
+    val ta = new Tweet("a", "Ape", 20)
+    val tb = new Tweet("b", "Bat", 21)
+    val tc = new Tweet("c", "Cat", 7)
+    val td = new Tweet("d", "Dog", 9)
+    val setA = Empty.incl(ta)
+    val setC = Empty.incl(tc)
+    val setCB = setC.incl(tb)
+    val setCBA = setCB.incl(ta)
+    val setCBD = setCB.incl(td)
+    val setCBAD = setCBA.incl(td)
   }
 
   def asSet(tweets: TweetSet): Set[Tweet] = {
@@ -28,59 +30,123 @@ class TweetSetSuite extends FunSuite {
 
   test("Print test data") {
     new TestSets {
-      println(s"set1:\t$set1")
-      println(s"set2:\t$set2")
-      println(s"set3:\t$set3")
-      println(s"set4c:\t$set4c")
-      println(s"set4d:\t$set4d")
-      println(s"set5:\t$set5")
-      println(s"tweet c:\t$c")
-      println(s"tweet d:\t$d")
+      println(s"setC    :\t$setC")
+      println(s"setCB   :\t$setCB")
+      println(s"setCBA  :\t$setCBA")
+      println(s"setCBD  :\t$setCBD")
+      println(s"setCBAD :\t$setCBAD")
     }
   }
   
   test("filter: on empty set") {
     new TestSets {
-      assert(size(set1.filter(tw => tw.user == "a")) === 0)
+      assert(size(Empty.filter(tw => tw.user == "a")) === 0)
     }
   }
 
-  test("filter: a on set5") {
+  test("filter: a on setCBAD") {
     new TestSets {
-      assert(size(set5.filter(tw => tw.user == "a")) === 1)
+      assert(size(setCBAD.filter(tw => tw.user == "a")) === 1)
     }
   }
 
-  test("filter: 20 on set5") {
+  test("filter: 20 on setCBAD") {
     new TestSets {
-      assert(size(set5.filter(tw => tw.retweets == 20)) === 2)
+      assert(size(setCBAD.filter(tw => tw.retweets >= 20)) === 2)
     }
   }
 
-  test("union: set4c and set4d") {
+  test("union: empty with empty") {
     new TestSets {
-      assert(size(set4c.union(set4d)) === 4)
+      assert(size(Empty.union(Empty)) === 0)
     }
   }
 
-  test("union: with empty set (1)") {
+  test("union: setCBAD with empty") {
     new TestSets {
-      assert(size(set5.union(set1)) === 4)
+      val s = setCBAD.union(Empty)
+      assert(size(s) === 4)
+      assert(s.contains(ta))
+      assert(s.contains(tb))
+      assert(s.contains(tc))
+      assert(s.contains(td))
     }
   }
 
-  test("union: with empty set (2)") {
+  test("union: empty set with setCBAD") {
     new TestSets {
-      assert(size(set1.union(set5)) === 4)
+      val s = Empty.union(setCBAD)
+      assert(size(s) === 4)
+      assert(s.contains(ta))
+      assert(s.contains(tb))
+      assert(s.contains(tc))
+      assert(s.contains(td))
     }
   }
 
-  test("descending: set5") {
+  test("union: setA and setC") {
     new TestSets {
-      val trends = set5.descendingByRetweet
+      val s = setA.union(setC)
+      assert(size(s) === 2)
+      assert(s.contains(ta))
+      assert(s.contains(tc))
+    }
+  }
+
+  test("union: setA and setCB") {
+    new TestSets {
+      val s = setA.union(setCB)
+      assert(size(s) === 3)
+      assert(s.contains(ta))
+      assert(s.contains(tb))
+      assert(s.contains(tc))
+    }
+  }
+
+  test("union: setCB and setA") {
+    new TestSets {
+      val s = setCB.union(setA)
+      assert(size(s) === 3)
+      assert(s.contains(ta))
+      assert(s.contains(tb))
+      assert(s.contains(tc))
+    }
+  }
+
+  test("union: setCBA and setCBD") {
+    new TestSets {
+      val s = setCBA.union(setCBD)
+      assert(size(s) === 4)
+      assert(s.contains(ta))
+      assert(s.contains(tb))
+      assert(s.contains(tc))
+      assert(s.contains(td))
+    }
+  }
+
+  test("most retweets: empty") {
+    new TestSets {
+      assert(null == Empty.mostRetweeted)
+    }
+  }
+
+  test("most retweets: non-empty") {
+    new TestSets {
+      assert(tb == setCBAD.mostRetweeted)
+    }
+  }
+
+  test("descending: empty") {
+    new TestSets {
+      assert(List() == Empty.descendingByRetweet)
+    }
+  }
+
+  test("descending: non-empty") {
+    new TestSets {
+      val trends = setCBAD.descendingByRetweet
       assert(!trends.isEmpty)
-      assert(trends.head.user == "a" || trends.head.user == "b")
+      assert(trends.head.user === "b")
     }
   }
-
 }

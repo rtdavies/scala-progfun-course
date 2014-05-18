@@ -35,6 +35,12 @@ class Tweet(val user: String, val text: String, val retweets: Int) {
  */
 abstract class TweetSet {
 
+  /*
+   * Some helpful set functions
+   */
+  def isSingleton: Boolean
+  def isEmpty: Boolean
+
   /**
    * This method takes a predicate and returns a subset of all the elements
    * in the original set for which the predicate is true.
@@ -45,7 +51,7 @@ abstract class TweetSet {
   def filter(p: Tweet => Boolean): TweetSet = filterAcc(p, Empty)
 
   /**
-   * This is a helper method for `filter` that propagetes the accumulated tweets.
+   * This is a helper method for `filter` that propagates the accumulated tweets.
    */
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet
 
@@ -55,7 +61,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-   def union(that: TweetSet): TweetSet = ???
+   def union(that: TweetSet): TweetSet
 
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -66,7 +72,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def mostRetweeted: Tweet = ???
+  def mostRetweeted: Tweet
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -77,8 +83,8 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def descendingByRetweet: TweetList = ???
-
+//  def descendingByRetweet: TweetList
+  def descendingByRetweet: List[Tweet]
 
   /**
    * The following methods are already implemented
@@ -110,16 +116,22 @@ abstract class TweetSet {
 
 object Empty extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
-    println(s"filtering Empty: '', ${acc}, false")
-    acc
-  }
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
+  override def union(that: TweetSet): TweetSet = that
+
+  override def isSingleton: Boolean = false
+
+  override def isEmpty: Boolean = true
+  
+  override def mostRetweeted: Tweet = null
+    
+//  override def descendingByRetweet: TweetList = Nil
+  override def descendingByRetweet: List[Tweet] = List[Tweet]()
 
   /**
    * The following methods are already implemented
    */
-
   def contains(tweet: Tweet): Boolean = false
 
   def incl(tweet: Tweet): TweetSet = new NonEmpty(tweet, Empty, Empty)
@@ -131,17 +143,51 @@ object Empty extends TweetSet {
   override def toString() = "."
 }
 
-class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
-
+class NonEmpty(val elem: Tweet, val left: TweetSet, val right: TweetSet) extends TweetSet {
+  
+  override def isSingleton: Boolean = left.isEmpty && right.isEmpty
+  
+  override def isEmpty: Boolean = false
+  
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
-    println(s"filtering NonEmpty: ${elem.text}, ${acc}, ${p(elem)}")
-    if (p(elem)) {
-      right.filterAcc(p, left.filterAcc(p, acc.incl(elem)))
-    } else {
-      right.filterAcc(p, left.filterAcc(p, acc))
-    }
+    if (p(elem)) right.filterAcc(p, left.filterAcc(p, acc.incl(elem)))
+    else right.filterAcc(p, left.filterAcc(p, acc))
   }
 
+  override def union(that: TweetSet): TweetSet = {
+    if (that.isEmpty) this
+    else if (this.isSingleton) that.incl(elem)
+    else if (that.isSingleton) this.incl(that.asInstanceOf[NonEmpty].elem)
+    else that.incl(elem).union(this.remove(elem))
+  }
+
+  override def mostRetweeted: Tweet = {
+    def mostRetweetedInc(remaining: TweetSet, champ: Tweet): Tweet = {
+      if (remaining.isEmpty) champ
+      else {
+        val challenger = remaining.asInstanceOf[NonEmpty].elem
+        if (challenger.retweets > champ.retweets) mostRetweetedInc(remaining.remove(challenger), challenger)
+        else mostRetweetedInc(remaining.remove(challenger), champ)
+      }
+    }
+    mostRetweetedInc(this.remove(elem), elem)
+  }
+  
+  //  def descendingByRetweet: TweetList = {
+  def descendingByRetweet: List[Tweet] = {
+    object RetweetOrdering extends Ordering[Tweet] {
+      def compare(a:Tweet, b:Tweet) = b.retweets compare a.retweets
+    }
+    
+    def descendingByRetweetInc(remaining: TweetSet, res: List[Tweet]): List[Tweet] = {
+      if (remaining.isEmpty) res
+      else {
+        val nextElem: Tweet = remaining.asInstanceOf[NonEmpty].elem
+        descendingByRetweetInc(remaining.remove(nextElem), List(res, List(nextElem)).flatten)
+      }
+    }
+    descendingByRetweetInc(this.remove(elem), List[Tweet](elem)).sorted(RetweetOrdering)
+  }
 
   /**
    * The following methods are already implemented
@@ -192,7 +238,6 @@ object Nil extends TweetList {
 class Cons(val head: Tweet, val tail: TweetList) extends TweetList {
   def isEmpty = false
 }
-
 
 object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
