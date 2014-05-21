@@ -153,13 +153,7 @@ class NonEmpty(val elem: Tweet, val left: TweetSet, val right: TweetSet) extends
     else right.filterAcc(p, left.filterAcc(p, acc))
   }
 
-  // TODO filterAcc(tw: Tweet => true, that)
-  def union(that: TweetSet): TweetSet = {
-    if (that.isEmpty) this
-    else if (this.isSingleton) that.incl(elem)
-    else if (that.isSingleton) this.incl(that.asInstanceOf[NonEmpty].elem)
-    else that.incl(elem).union(this.remove(elem))
-  }
+  def union(that: TweetSet): TweetSet = filterAcc(tw => true, that)
 
   def mostRetweeted: Tweet = {
     def mostRetweetedInc(remaining: TweetSet, champ: Tweet): Tweet = {
